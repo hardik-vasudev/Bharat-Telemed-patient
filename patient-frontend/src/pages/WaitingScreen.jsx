@@ -6,41 +6,42 @@ const WaitingScreen = () => {
   const [patientId, setPatientId] = useState('');
   const [patientData, setPatientData] = useState(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [loadingJwt, setLoadingJwt] = useState(false);
   const navigate = useNavigate();
 
+  const BASE_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
+
   const handleFetchPatientData = async () => {
     try {
-      console.log('Fetching patient data for ID:', patientId);
-      const response = await axios.get(`http://127.0.0.1:8000/patients/${patientId}`);
-      console.log('Patient data received:', response.data);
-      setPatientData(response.data);
+      setLoading(true);
       setError('');
+      const response = await axios.get(`${BASE_URL}/patients/${patientId}`);
+      setPatientData(response.data);
+      setLoading(false);
     } catch (err) {
-      console.error('Error fetching patient data:', err);
-      setError('Failed to fetch patient data. Please try again.');
+      setLoading(false);
+      setError('Failed to fetch patient data. Please check the Patient ID and try again.');
     }
   };
 
   const handleJoinTeleconsultation = async () => {
     if (!patientData) return;
+
     const condition =
       (patientData.reason && patientData.reason !== 'Other')
         ? patientData.reason
         : (patientData.customReason || 'General');
-    console.log('Determined condition:', condition);
+
     try {
       setLoadingJwt(true);
-      const response = await axios.get('http://127.0.0.1:8000/api/get-jwt', { params: { condition } });
+      const response = await axios.get(`${BASE_URL}/api/get-jwt`, { params: { condition } });
       const jwt = response.data.jwt;
-      console.log('JWT fetched:', jwt);
       setLoadingJwt(false);
       navigate('/teleconsultation', { state: { jwt, condition } });
     } catch (err) {
-      console.error('Error fetching JWT:', err);
       setLoadingJwt(false);
-      // Even if JWT fetch fails, still redirect for now
-      navigate('/teleconsultation', { state: { jwt: "", condition } });
+      navigate('/teleconsultation', { state: { jwt: "", condition } }); // Redirect even if JWT fails
     }
   };
 
@@ -59,8 +60,9 @@ const WaitingScreen = () => {
           <button
             onClick={handleFetchPatientData}
             className="bg-blue-500 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-600 transition-all mb-4"
+            disabled={loading}
           >
-            Fetch Data
+            {loading ? 'Fetching Data...' : 'Fetch Data'}
           </button>
           {error && <p className="text-red-500 mb-4">{error}</p>}
         </>
