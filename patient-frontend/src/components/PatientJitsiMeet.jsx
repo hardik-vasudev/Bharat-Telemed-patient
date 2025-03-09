@@ -4,56 +4,64 @@ import { MessageSquare, User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
-/**
- * PatientJitsiMeet Component
- *
- * This component integrates Jitsi Meet for telemedicine consultations.
- * - Fetches a JWT token from the backend based on the patient's condition.
- * - Initializes the Jitsi meeting room.
- * - Provides a button to toggle chat within the meeting.
- *
- * Features:
- * - Auto-fetches JWT token for authentication.
- * - Uses Jitsi's React SDK to embed the meeting.
- * - Handles navigation after the meeting ends.
- */
-
 const PatientJitsiMeet = () => {
-  const jitsiApiRef = useRef(null);  // Ref to store Jitsi API instance
+  const jitsiApiRef = useRef(null); // Ref to store Jitsi API instance
   const navigate = useNavigate();
-  const { state } = useLocation(); // Extracts state from navigation
-  const { condition } = state || { condition: "General" }; // Default condition if not provided
-  const [jwt, setJwt] = useState(state?.jwt || ""); // JWT token for authentication
-// Fetch JWT token if not available
+  const { state } = useLocation();
+  const { condition } = state || { condition: "General" };
+  const [jwt, setJwt] = useState(state?.jwt || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+  // Fetch JWT token if not available
   useEffect(() => {
-    if (!jwt) {
-      // Fetch the JWT from backend based on the condition
-      axios
-        .get("http://127.0.0.1:8000/api/get-jwt", { params: { condition } })
-        .then((response) => {
+    const fetchJwt = async () => {
+      if (!jwt) {
+        setLoading(true);
+        try {
+          const response = await axios.get(`${BASE_URL}/api/get-jwt`, { params: { condition } });
           setJwt(response.data.jwt);
-        })
-        .catch((error) => {
-          console.error("Error fetching JWT:", error);
-        });
-    }
+        } catch (err) {
+          console.error("Error fetching JWT:", err);
+          setError("Failed to load consultation room. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchJwt();
   }, [jwt, condition]);
-// Debugging: Log JWT and condition updates
+
+  // Debugging: Log JWT and condition updates
   useEffect(() => {
     console.log("PatientJitsiMeet - JWT:", jwt, "Condition:", condition);
   }, [jwt, condition]);
-// Function to toggle chat visibility in Jitsi
+
+  // Function to toggle chat visibility in Jitsi
   const toggleChat = () => {
     if (jitsiApiRef.current) {
       jitsiApiRef.current.executeCommand("toggleChat");
+    } else {
+      setError("Chat feature is unavailable. Try reloading the page.");
     }
   };
 
-  // Display a loading message while JWT is being fetched
-  if (!jwt) {
+  // Display error or loading message
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100">
         <p className="text-xl font-semibold">Loading teleconsultation...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-red-100">
+        <p className="text-xl font-semibold text-red-500">{error}</p>
       </div>
     );
   }
@@ -63,7 +71,7 @@ const PatientJitsiMeet = () => {
       <JaaSMeeting
         appId="vpaas-magic-cookie-c85c2e0743c543eca03932757a05a554"
         domain="8x8.vc"
-        roomName="TelemedRoom"
+        roomName={`BharatTelemed-${condition}`}
         jwt={jwt}
         configOverwrite={{
           startWithAudioMuted: false,
@@ -86,6 +94,7 @@ const PatientJitsiMeet = () => {
           iframeRef.style.border = "none";
         }}
       />
+
       {/* Toggle Chat Button */}
       <button
         className="absolute bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 hover:bg-green-700 transition"
@@ -94,7 +103,8 @@ const PatientJitsiMeet = () => {
         <MessageSquare size={20} />
         <span>Toggle Chat</span>
       </button>
-       {/* Patient Info Badge */}
+
+      {/* Patient Info Badge */}
       <div className="absolute top-4 left-4 flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow">
         <User size={24} className="text-gray-700" />
         <span className="text-gray-900 font-medium">Patient</span>
