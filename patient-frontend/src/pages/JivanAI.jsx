@@ -5,6 +5,7 @@ import './JivanAI.css';
 const JivanAI = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [voices, setVoices] = useState([]);
@@ -16,7 +17,6 @@ const JivanAI = () => {
   recognition.continuous = false;
   recognition.interimResults = false;
 
-  // Load voices once they are available
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = synth.getVoices();
@@ -28,7 +28,6 @@ const JivanAI = () => {
     }
   }, [synth]);
 
-  // Only cancel speech if a message is manually sent.
   const stopSpeaking = () => {
     if (synth.speaking) {
       synth.cancel();
@@ -36,18 +35,15 @@ const JivanAI = () => {
     }
   };
 
-  // fromVoice flag indicates if the message comes from voice recognition.
   const handleSend = async (message, fromVoice = false) => {
     if (!message.trim()) return;
-    if (!fromVoice) {
-      // Cancel ongoing speech only for manual (text) inputs.
-      stopSpeaking();
-    }
+    if (!fromVoice) stopSpeaking();
 
     const userMessage = { sender: 'user', text: message };
     setMessages((prev) => [...prev, userMessage]);
 
     try {
+      setLoading(true);
       const response = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/api/chat/`,
         { message }
@@ -60,26 +56,24 @@ const JivanAI = () => {
         ...prev,
         { sender: 'bot', text: 'Failed to connect to JivanAI. Please try again.' },
       ]);
+    } finally {
+      setLoading(false);
     }
     setInput('');
   };
 
   const speak = (text) => {
-    // We don't call stopSpeaking here so that the current utterance can finish naturally.
     utterance = new SpeechSynthesisUtterance(text);
-    // Try to select a natural-sounding voice
     const chosenVoice =
       voices.find((voice) => voice.name.includes('Google UK English Male')) || voices[0];
-    if (chosenVoice) {
-      utterance.voice = chosenVoice;
-    }
+    if (chosenVoice) utterance.voice = chosenVoice;
+
     utterance.onstart = () => setSpeaking(true);
     utterance.onend = () => setSpeaking(false);
     synth.speak(utterance);
   };
 
   const startListening = () => {
-    // When starting voice input manually, it's fine to cancel the current speech.
     stopSpeaking();
     setListening(true);
     recognition.start();
@@ -88,7 +82,6 @@ const JivanAI = () => {
   recognition.onresult = (event) => {
     const speechResult = event.results[0][0].transcript;
     setInput(speechResult);
-    // Mark the message as coming from voice recognition so we don't cancel speech mid-sentence.
     handleSend(speechResult, true);
   };
 
@@ -107,7 +100,9 @@ const JivanAI = () => {
           </div>
         ))}
         {speaking && <div className="ai-speaking-animation"></div>}
+        {loading && <div className="loading-indicator">🤖 Thinking...</div>}
       </div>
+
       <div className="input-container">
         <input
           value={input}
@@ -119,7 +114,10 @@ const JivanAI = () => {
         <button onClick={() => handleSend(input)} className="send-button">
           Send
         </button>
-        <button onClick={startListening} className="voice-button">
+        <button
+          onClick={startListening}
+          className={`voice-button ${listening ? 'glow-effect' : ''}`}
+        >
           {listening ? '🎙️ Listening...' : '🎙️ Voice Chat'}
         </button>
       </div>
