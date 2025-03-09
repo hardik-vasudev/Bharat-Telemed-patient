@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
 const PatientJitsiMeet = () => {
-  const jitsiApiRef = useRef(null); // Ref to store Jitsi API instance
+  const jitsiApiRef = useRef(null);
   const navigate = useNavigate();
   const { state } = useLocation();
   const { condition } = state || { condition: "General" };
@@ -14,18 +14,25 @@ const PatientJitsiMeet = () => {
   const [error, setError] = useState("");
 
   const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  if (!import.meta.env.VITE_API_BASE_URL) {
+    console.warn("⚠️ VITE_API_BASE_URL is missing! Using default URL: http://127.0.0.1:8000");
+  }
 
-  // Fetch JWT token if not available
+  // Fetch JWT token with retry logic
   useEffect(() => {
-    const fetchJwt = async () => {
+    const fetchJwt = async (attempt = 1) => {
       if (!jwt) {
         setLoading(true);
         try {
           const response = await axios.get(`${BASE_URL}/api/get-jwt`, { params: { condition } });
           setJwt(response.data.jwt);
         } catch (err) {
-          console.error("Error fetching JWT:", err);
-          setError("Failed to load consultation room. Please try again.");
+          console.error(`❌ Error fetching JWT (Attempt ${attempt}):`, err);
+          if (attempt < 3) {
+            setTimeout(() => fetchJwt(attempt + 1), 2000); // Retry after 2 seconds
+          } else {
+            setError("Failed to load consultation room after multiple attempts. Please try again.");
+          }
         } finally {
           setLoading(false);
         }
@@ -35,21 +42,21 @@ const PatientJitsiMeet = () => {
     fetchJwt();
   }, [jwt, condition]);
 
-  // Debugging: Log JWT and condition updates
+  // Debugging Logs
   useEffect(() => {
-    console.log("PatientJitsiMeet - JWT:", jwt, "Condition:", condition);
+    console.log("✅ PatientJitsiMeet - JWT:", jwt, "Condition:", condition);
   }, [jwt, condition]);
 
-  // Function to toggle chat visibility in Jitsi
+  // Toggle Chat Logic (with readiness check)
   const toggleChat = () => {
     if (jitsiApiRef.current) {
       jitsiApiRef.current.executeCommand("toggleChat");
     } else {
-      setError("Chat feature is unavailable. Try reloading the page.");
+      setError("Chat feature is not ready yet. Please wait a few seconds and try again.");
     }
   };
 
-  // Display error or loading message
+  // Display loading screen
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100">
@@ -58,6 +65,7 @@ const PatientJitsiMeet = () => {
     );
   }
 
+  // Display error screen
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen bg-red-100">

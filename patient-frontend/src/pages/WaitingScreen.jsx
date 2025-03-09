@@ -3,22 +3,25 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const WaitingScreen = () => {
+  // Replace this with your actual backend URL
+  const BACKEND_URL = "https://bharat-telemed-patient-1.onrender.com";
+
   const [patientId, setPatientId] = useState('');
   const [patientData, setPatientData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingJwt, setLoadingJwt] = useState(false);
+
   const navigate = useNavigate();
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-
+  // 1. Fetch Patient Data from the Backend
   const handleFetchPatientData = async () => {
     try {
       setLoading(true);
       setError('');
       console.log(`🔍 Fetching data for patient ID: ${patientId}`);
-      
-      const response = await axios.get(`${BASE_URL}/patients/${patientId}`);
+
+      const response = await axios.get(`${BACKEND_URL}/patients/${patientId}`);
       console.log("✅ Patient Data Received:", response.data);
 
       setPatientData(response.data);
@@ -30,9 +33,11 @@ const WaitingScreen = () => {
     }
   };
 
+  // 2. Join Teleconsultation by Fetching JWT
   const handleJoinTeleconsultation = async () => {
     if (!patientData) return;
 
+    // Determine condition from the patient's data
     const condition =
       (patientData.reason && patientData.reason !== 'Other')
         ? patientData.reason
@@ -42,13 +47,18 @@ const WaitingScreen = () => {
       setLoadingJwt(true);
       console.log(`🔍 Fetching JWT for condition: ${condition}`);
 
-      const response = await axios.get(`${BASE_URL}/api/get-jwt`, { params: { condition } });
+      const response = await axios.get(`${BACKEND_URL}/api/get-jwt`, {
+        params: { condition }
+      });
+
       const jwt = response.data.jwt;
       console.log("✅ JWT Received:", jwt);
 
+      // Navigate to teleconsultation with JWT & condition
       navigate('/teleconsultation', { state: { jwt, condition } });
     } catch (err) {
       console.error("❌ Error fetching JWT:", err);
+      // Even if JWT fails, still navigate to teleconsultation
       navigate('/teleconsultation', { state: { jwt: "", condition } });
     } finally {
       setLoadingJwt(false);
@@ -57,6 +67,7 @@ const WaitingScreen = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
+      {/* If no patient data yet, show fetch UI */}
       {!patientData ? (
         <>
           <h2 className="text-2xl font-bold mb-6 text-gray-700">Waiting Room</h2>
@@ -90,6 +101,7 @@ const WaitingScreen = () => {
           </button>
         </div>
       )}
+      {/* Main Menu Button */}
       <button
         onClick={() => navigate('/menu')}
         className="mt-6 bg-gray-500 text-white px-5 py-2 rounded-lg"
