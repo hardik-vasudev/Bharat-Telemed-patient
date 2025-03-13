@@ -1,14 +1,15 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from groq import Groq
 import os
+import re
 
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Load environment variables
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 load_dotenv()
 
 # MongoDB Configuration
@@ -25,30 +26,30 @@ except Exception as e:
 
 db = client["BharatTelemed"]
 patients_collection = db["patients"]
-jwt_collection = db["patient_jwt"]
 
 # GROQ API Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise Exception("GROQ_API_KEY not found in .env")
+
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Initialize FastAPI application and middleware
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For development, restrict in production
+    allow_origins=["*"],  # For dev; restrict in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Data Models
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 class Patient(BaseModel):
     name: str
     age: int
@@ -58,66 +59,143 @@ class Patient(BaseModel):
 class ChatRequest(BaseModel):
     message: str
 
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Utility Functions
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 def generate_short_id():
     """Generate a short unique hexadecimal ID for a patient."""
     return os.urandom(4).hex()
 
-# -----------------------------------------------------------------------------
+def find_patient_data_in_db(patient_id: str):
+    """Retrieve patient data by patient_id from MongoDB."""
+    patient = patients_collection.find_one({"patient_id": patient_id})
+    if not patient:
+        return None
+    # Convert _id to string
+    patient["_id"] = str(patient["_id"])
+    return patient
+
+def build_system_prompt(patient_data: dict | None = None):
+    """
+    Build a system prompt for Groq that:
+      - Acts like a real doctor
+      - Provides short, human-like responses
+      - No bullet points, no asterisks
+      - Respond in user's language if recognized
+      - If patient_data is provided, mention it
+    """
+    base_prompt = (
+        "You are JivanAI, an advanced AI Doctor. "
+        "Speak like a real human doctor in a conversational tone. "
+        "Never use bullet points or asterisks. "
+        "If the user is speaking in Hindi, respond in Hindi. If in English, respond in English. "
+        "Give short, direct medical advice. "
+        "If the user provided a patient ID, reference their data if relevant. "
+        "Avoid disclaimers and keep it succinct."
+    )
+
+    if patient_data:
+        # Incorporate minimal info about patient
+        base_prompt += (
+            f" The patient's name is {patient_data.get('name')}, age {patient_data.get('age')}. "
+            f"Reason: {patient_data.get('reason', 'N/A')}. "
+        )
+        # Add any other relevant fields from the DB
+    return base_prompt
+
+def remove_bullets_and_asterisks(text: str) -> str:
+    """Remove bullet points or asterisks from text."""
+    # Remove common bullet chars
+    text = re.sub(r"[*•]", "", text)
+    return text
+
+# -------------------------------------------------------------------------
 # API Endpoints
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 @app.get("/")
 def read_root():
-    return {"message": "FastAPI server is running!"}
+    return {"message": "JivanAI Doctor backend running!"}
 
 @app.post("/patients/")
 async def create_patient(patient: Patient):
+    """
+    Create a new patient record with a short unique ID.
+    """
     try:
         patient_data = patient.dict()
         patient_data["patient_id"] = generate_short_id()
         patients_collection.insert_one(patient_data)
-        return {"id": patient_data["patient_id"], "message": "Patient data inserted successfully"}
+        return {
+            "id": patient_data["patient_id"],
+            "message": "Patient data inserted successfully",
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to insert patient data: {e}")
 
 @app.get("/patients/{patient_id}")
 async def get_patient(patient_id: str):
-    patient = patients_collection.find_one({"patient_id": patient_id})
-    if patient:
-        patient["_id"] = str(patient["_id"])  # Convert ObjectId to string for JSON response
-        print(f"✅ Found Patient Data for ID {patient_id}: {patient}")
-        return patient
-    else:
-        print(f"❌ No Patient Data Found for ID {patient_id}")
+    """
+    Retrieve patient details by patient_id.
+    """
+    patient = find_patient_data_in_db(patient_id)
+    if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-
-@app.get("/api/get-jwt")
-async def get_jwt(condition: str = Query(...)):
-    jwt_doc = jwt_collection.find_one({"condition": condition})
-    if jwt_doc and "jwt" in jwt_doc:
-        return {"jwt": jwt_doc["jwt"]}
-    else:
-        raise HTTPException(status_code=404, detail="JWT not found for condition")
+    return patient
 
 @app.post("/api/chat/")
 async def chat(request: ChatRequest):
+    """
+    Main chat endpoint for JivanAI.
+    - Detect if user provided "my patient ID is X"
+    - If so, retrieve data from DB & incorporate into system prompt
+    - Instruct Groq to produce short, no bullet/asterisk responses
+    """
+    user_message = request.message
+    patient_data = None
+
+    # Naive parse to see if user says "my patient id is <some hex>"
+    # or "my patient ID is <some text>"
+    # e.g. "my patient ID is 62da40c1"
+    # We'll do a simple search:
+    lowered = user_message.lower()
+    if "my patient id is" in lowered:
+        # parse after that phrase
+        # e.g. user might say "my patient id is 62da40c1"
+        try:
+            pid = lowered.split("my patient id is")[1].strip().split()[0]
+            # Attempt to find in DB
+            found = find_patient_data_in_db(pid)
+            if found:
+                patient_data = found
+        except:
+            pass
+
+    # Build system prompt
+    system_prompt = build_system_prompt(patient_data=patient_data)
+
     try:
+        # Groq call
         response = groq_client.chat.completions.create(
             model="llama3-8b-8192",
             messages=[
-                {"role": "system", "content": "Provide concise medical advice in bullet points."},
-                {"role": "user", "content": request.message}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
             ]
         )
-        return {"response": response.choices[0].message.content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        ai_text = response.choices[0].message.content
 
-# -----------------------------------------------------------------------------
+        # Remove bullet points or asterisks
+        ai_text = remove_bullets_and_asterisks(ai_text)
+        return {"response": ai_text}
+
+    except Exception as e:
+        print("Groq error:", e)
+        raise HTTPException(status_code=500, detail="Failed to get response from Groq AI")
+
+# -------------------------------------------------------------------------
 # Run the application locally
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)

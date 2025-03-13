@@ -1,43 +1,79 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaVideo, FaUserMd, FaFileMedical, FaUser, FaHome } from "react-icons/fa";
+import {
+  Video,
+  BrainCircuit,
+  FileCheck2,
+  UserCheck,
+  Home,
+} from "lucide-react";
 
-const MainMenu = () => {
+export default function MainMenu() {
   const navigate = useNavigate();
 
   const menuItems = [
-    { id: 1, label: "Teleconsultation", icon: <FaVideo size={50} />, route: "/waiting", bgColor: "bg-blue-500", hoverColor: "hover:bg-blue-600" },
-    { id: 2, label: "AI Doctor", icon: <FaUserMd size={50} />, route: "/jivanai", bgColor: "bg-purple-500", hoverColor: "hover:bg-purple-600" },
-    { id: 3, label: "Test reports", icon: <FaFileMedical size={50} />, route: "/testreports", bgColor: "bg-yellow-500", hoverColor: "hover:bg-yellow-600" },
-    { id: 4, label: "Patient Login", icon: <FaUser size={50} />, route: "/patientlogin", bgColor: "bg-red-500", hoverColor: "hover:bg-red-600" },
+    {
+      id: 1,
+      label: "Teleconsultation",
+      icon: <Video size={40} />,
+      route: "/waiting",
+      bgColor: "bg-cyan-500",
+      hoverColor: "hover:bg-cyan-600",
+    },
+    {
+      id: 2,
+      label: "AI Doctor",
+      icon: <BrainCircuit size={40} />, // replaced Robot with BrainCircuit
+      route: "/jivanai",
+      bgColor: "bg-purple-500",
+      hoverColor: "hover:bg-purple-600",
+    },
+    {
+      id: 3,
+      label: "Test Reports",
+      icon: <FileCheck2 size={40} />,
+      route: "/reports",
+      bgColor: "bg-emerald-500",
+      hoverColor: "hover:bg-emerald-600",
+    },
+    {
+      id: 4,
+      label: "Patient Login",
+      icon: <UserCheck size={40} />,
+      route: "/patientlogin",
+      bgColor: "bg-pink-500",
+      hoverColor: "hover:bg-pink-600",
+    },
   ];
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-green-100 relative">
-      {/* Title */}
-      <h1 className="text-5xl font-extrabold text-blue-800 mb-10 tracking-wide shadow-md">Bharat-Telemed Kiosk</h1>
-       {/* Render menu buttons dynamically */}
-      <div className="grid grid-cols-2 gap-8">
+    <div className="w-screen h-screen flex flex-col items-center justify-center bg-white relative">
+      <h1 className="text-5xl font-extrabold text-gray-800 my-10 tracking-wide">
+        Bharat-Telemed Kiosk
+      </h1>
+
+      <div className="grid grid-cols-2 gap-10">
         {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => navigate(item.route)}
-            className={`flex flex-col items-center justify-center p-8 rounded-2xl shadow-2xl transition-transform transform hover:scale-110 duration-300 text-white ${item.bgColor} ${item.hoverColor}`}
+            className={`flex flex-col items-center justify-center w-48 h-48 p-6 rounded-2xl shadow-xl text-white transition-transform transform hover:scale-105 duration-300 ${item.bgColor} ${item.hoverColor}`}
           >
             {item.icon}
-            <span className="mt-4 text-xl font-semibold">{item.label}</span>
+            <span className="mt-3 text-xl font-semibold text-center leading-tight">
+              {item.label}
+            </span>
           </button>
         ))}
       </div>
-      {/* Home button to navigate back */}
+
       <button
         onClick={() => navigate("/")}
-        className="absolute bottom-6 left-6 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 text-lg flex items-center gap-2"
+        className="absolute bottom-6 left-6 bg-gray-800 text-white px-5 py-3 rounded-xl shadow-lg hover:bg-gray-900 transition-all duration-300 text-lg flex items-center gap-2"
       >
-        <FaHome size={20} /> Home
+        <Home size={20} />
+        Home
       </button>
     </div>
   );
-};
-
-export default MainMenu;
+}

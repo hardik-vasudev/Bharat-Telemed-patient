@@ -12,6 +12,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@jitsi/react-sdk": "^1.4.0",
+    "@radix-ui/react-dialog": "^1.1.6",
     "axios": "^1.7.9",
     "framer-motion": "^12.4.2",
     "groq": "^3.75.0",

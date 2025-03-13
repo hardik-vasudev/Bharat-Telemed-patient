@@ -1,130 +1,210 @@
-/* Body and container styling to mimic a Telemedicine dashboard theme */
+/* Body / Container */
 body {
-  font-family: 'Poppins', sans-serif;
-  background-color: #f4f6f9;
   margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  background-color: #f4f6f9;
 }
 
-/* Chat Container */
-.chat-container {
-  width: 60%;
-  max-width: 800px;
+/* Outer Container */
+.jivanai-container {
+  width: 90%;
+  max-width: 1000px;
+  margin: 30px auto;
   background: #ffffff;
-  padding: 20px;
   border-radius: 15px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  height: 80vh;
+  padding: 20px;
+  min-height: 80vh;
 }
 
-h2 {
-  text-align: center;
+/* Header */
+.jivanai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 15px;
-  color: #0056b3;
 }
 
-/* Chat Messages */
-.chat-messages {
+.jivanai-header h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #008080; /* teal accent for medical vibe */
+  margin: 0;
+}
+
+/* Language Select */
+.lang-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lang-select label {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.lang-select select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 0.9rem;
+}
+
+.menu-button {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+.menu-button:hover {
+  background-color: #555;
+}
+
+/* Chat Window */
+.chat-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-top: 2px solid #eee;
+  padding-top: 15px;
+}
+
+/* Quick Suggestions */
+.quick-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.suggestion-button {
+  background-color: #e0f7f7;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.suggestion-button:hover {
+  background-color: #b2ecec;
+}
+
+/* Messages Container */
+.messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-/* Message Styles */
-.user-message, .bot-message {
-  padding: 10px 15px;
-  border-radius: 20px;
-  max-width: 70%;
-  margin: 5px;
-  word-wrap: break-word;
-}
-
+/* User Message */
 .user-message {
   background-color: #007bff;
-  color: white;
+  color: #fff;
   align-self: flex-end;
+  padding: 10px 14px;
+  border-radius: 20px;
+  max-width: 70%;
+  word-wrap: break-word;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
-.bot-message {
-  background-color: #f1f1f1;
-  color: #333;
+/* Bot Message Card Layout */
+.bot-message-card {
   align-self: flex-start;
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  max-width: 70%;
+  overflow: hidden;
+  word-wrap: break-word;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* Card Header */
+.bot-card-header {
+  background-color: #e0f7f7;
+  color: #008080;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Card Content */
+.bot-card-content {
+  padding: 10px 14px;
+  color: #333;
+}
+
+/* Loading Indicator */
+.loading-indicator {
+  font-size: 1rem;
+  color: #666;
+  align-self: center;
 }
 
 /* Input & Buttons */
 .input-container {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 15px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .chat-input {
   flex: 1;
   padding: 12px;
-  border-radius: 25px;
+  border-radius: 20px;
   border: 2px solid #ccc;
   transition: box-shadow 0.3s;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .chat-input:focus {
-  box-shadow: 0 0 5px #007bff;
   outline: none;
+  box-shadow: 0 0 4px #008080;
 }
 
-.send-button, .voice-button {
-  padding: 12px 18px;
-  border-radius: 25px;
+.send-button,
+.voice-button {
+  background-color: #008080;
+  color: #fff;
   border: none;
-  color: white;
+  border-radius: 20px;
+  padding: 10px 14px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 0.9rem;
   transition: background-color 0.3s, transform 0.2s;
 }
 
-.send-button {
-  background-color: #007bff;
-}
-
-.send-button:hover {
-  background-color: #0056b3;
-  transform: scale(1.05);
-}
-
-.voice-button {
-  background-color: #28a745;
-}
-
+.send-button:hover,
 .voice-button:hover {
-  background-color: #218838;
+  background-color: #006666;
   transform: scale(1.05);
 }
 
-/* AI Speaking Animation (Siri-like effect) */
-.ai-speaking-animation {
-  width: 50px;
-  height: 50px;
-  margin: 10px auto;
-  border-radius: 50%;
-  background: radial-gradient(circle, #00f260, #0575e6);
-  animation: pulse 1s infinite alternate;
+/* Voice button listening state */
+.listening {
+  animation: glow 1s infinite alternate;
 }
 
-@keyframes pulse {
+@keyframes glow {
   from {
-    transform: scale(0.9);
-    box-shadow: 0 0 10px rgba(0, 242, 96, 0.5);
+    box-shadow: 0 0 8px #008080;
   }
   to {
-    transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(5, 117, 230, 0.7);
+    box-shadow: 0 0 16px #008080;
   }
 }

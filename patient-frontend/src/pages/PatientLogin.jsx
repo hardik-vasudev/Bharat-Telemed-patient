@@ -9,8 +9,10 @@ export default function PatientLogin() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
+    // For now, just check if the user entered something
     if (uniqueId.trim() !== "") {
-      navigate("/dashboard"); // Redirect to patient dashboard after login
+      // Redirect to patient details page
+      navigate("/patient-details");
     }
   };
 
@@ -19,7 +21,8 @@ export default function PatientLogin() {
   };
 
   const goToMainMenu = () => {
-    navigate("/menu"); // Redirect to Main Menu Page
+    // Go back to main menu
+    navigate("/menu");
   };
 
   return (
@@ -39,11 +42,17 @@ export default function PatientLogin() {
               onChange={(e) => setUniqueId(e.target.value)}
               className="w-full border-gray-300 rounded-lg p-2 text-lg"
             />
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg py-2" onClick={handleLogin}>
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg py-2"
+              onClick={handleLogin}
+            >
               Login with Unique ID
             </Button>
             <div className="text-center text-gray-500">or</div>
-            <Button className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-2" onClick={handleBiometricLogin}>
+            <Button
+              className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-2"
+              onClick={handleBiometricLogin}
+            >
               Login with Biometrics
             </Button>
           </div>
