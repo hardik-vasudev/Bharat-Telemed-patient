@@ -95,19 +95,15 @@ def build_system_prompt(patient_data: dict | None = None):
     )
 
     if patient_data:
-        # Incorporate minimal info about patient
         base_prompt += (
             f" The patient's name is {patient_data.get('name')}, age {patient_data.get('age')}. "
             f"Reason: {patient_data.get('reason', 'N/A')}. "
         )
-        # Add any other relevant fields from the DB
     return base_prompt
 
 def remove_bullets_and_asterisks(text: str) -> str:
     """Remove bullet points or asterisks from text."""
-    # Remove common bullet chars
-    text = re.sub(r"[*•]", "", text)
-    return text
+    return re.sub(r"[*•]", "", text)
 
 # -------------------------------------------------------------------------
 # API Endpoints
@@ -146,35 +142,26 @@ async def get_patient(patient_id: str):
 async def chat(request: ChatRequest):
     """
     Main chat endpoint for JivanAI.
-    - Detect if user provided "my patient ID is X"
+    - Detect if user provided "my patient id is X"
     - If so, retrieve data from DB & incorporate into system prompt
     - Instruct Groq to produce short, no bullet/asterisk responses
     """
     user_message = request.message
     patient_data = None
 
-    # Naive parse to see if user says "my patient id is <some hex>"
-    # or "my patient ID is <some text>"
-    # e.g. "my patient ID is 62da40c1"
-    # We'll do a simple search:
     lowered = user_message.lower()
     if "my patient id is" in lowered:
-        # parse after that phrase
-        # e.g. user might say "my patient id is 62da40c1"
         try:
             pid = lowered.split("my patient id is")[1].strip().split()[0]
-            # Attempt to find in DB
             found = find_patient_data_in_db(pid)
             if found:
                 patient_data = found
         except:
             pass
 
-    # Build system prompt
     system_prompt = build_system_prompt(patient_data=patient_data)
 
     try:
-        # Groq call
         response = groq_client.chat.completions.create(
             model="llama3-8b-8192",
             messages=[
@@ -183,19 +170,21 @@ async def chat(request: ChatRequest):
             ]
         )
         ai_text = response.choices[0].message.content
-
-        # Remove bullet points or asterisks
         ai_text = remove_bullets_and_asterisks(ai_text)
         return {"response": ai_text}
-
     except Exception as e:
         print("Groq error:", e)
         raise HTTPException(status_code=500, detail="Failed to get response from Groq AI")
 
 # -------------------------------------------------------------------------
-# Run the application locally
+# Run the application (host, port determined by environment or fallback)
 # -------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
+    # For local dev, default to port 8000; in deployment, read from PORT env
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        reload=True
+    )
